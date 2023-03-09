@@ -135,7 +135,7 @@ update_doc() {
 }
 
 # go to github repo
-cd "${}"
+cd "${GIT_CLONE_PATH}"
 
 git_setup
 
@@ -147,12 +147,12 @@ if [ -f "${GIT_CLONE_PATH}/${INPUT_ATLANTIS_FILE}" ]; then
 elif [ -n "${INPUT_FIND_DIR}" ] && [ "${INPUT_FIND_DIR}" != "disabled" ]; then
     # Find all tf
     for project_dir in $(find "${INPUT_FIND_DIR}" -name '*.tf' -exec dirname {} \; | uniq); do
-        update_doc "${project_dir}"
+        update_doc "${GIT_CLONE_PATH}"
     done
 else
     # Split INPUT_WORKING_DIR by commas
     for project_dir in ${INPUT_WORKING_DIR//,/ }; do
-        update_doc "${project_dir}"
+        update_doc "${GIT_CLONE_PATH}"
     done
 fi
 
