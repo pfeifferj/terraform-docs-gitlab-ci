@@ -39,7 +39,8 @@ git_setup() {
 
     git config --global user.name "${INPUT_GIT_PUSH_USER_NAME}"
     git config --global user.email "${INPUT_GIT_PUSH_USER_EMAIL}"
-    git fetch --depth=1 origin +refs/tags/*:refs/tags/* || true
+    # git fetch --depth=1 origin +refs/tags/*:refs/tags/* || true
+    git switch $CI_COMMIT_BRANCH
 }
 
 git_add() {
@@ -74,6 +75,7 @@ git_commit() {
         args+=("-s")
     fi
 
+    echo "::debug Committing changes"
     git commit "${args[@]}"
 }
 
@@ -135,7 +137,7 @@ update_doc() {
 }
 
 # go to github repo
-cd "${}"
+cd "${GIT_CLONE_PATH}"
 
 git_setup
 
@@ -147,12 +149,12 @@ if [ -f "${GIT_CLONE_PATH}/${INPUT_ATLANTIS_FILE}" ]; then
 elif [ -n "${INPUT_FIND_DIR}" ] && [ "${INPUT_FIND_DIR}" != "disabled" ]; then
     # Find all tf
     for project_dir in $(find "${INPUT_FIND_DIR}" -name '*.tf' -exec dirname {} \; | uniq); do
-        update_doc "${project_dir}"
+        update_doc "${GIT_CLONE_PATH}"
     done
 else
     # Split INPUT_WORKING_DIR by commas
     for project_dir in ${INPUT_WORKING_DIR//,/ }; do
-        update_doc "${project_dir}"
+        update_doc "${GIT_CLONE_PATH}"
     done
 fi
 
@@ -163,7 +165,8 @@ set -e
 
 if [ "${INPUT_GIT_PUSH}" = "true" ]; then
     git_commit
-    git push
+    echo "::debug Pushing changes"
+    git push origin HEAD:$CI_COMMIT_BRANCH
 else
     if [ "${INPUT_FAIL_ON_DIFF}" = "true" ] && [ "${num_changed}" -ne 0 ]; then
         echo "::error ::Uncommitted change(s) has been found!"

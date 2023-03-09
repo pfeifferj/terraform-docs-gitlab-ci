@@ -7,16 +7,12 @@ variables:
     value: $GIT_CLONE_PATH
     description: Comma separated list of directories to generate docs for (ignored if `atlantis-file` or `find-dir` is set)
   INPUT_ATLANTIS_FILE:
-    value: "disabled"
     description: Name of Atlantis file to extract list of directories by parsing it. To enable, provide the file name (e.g. `atlantis.yaml`)
   INPUT_FIND_DIR:
-    value: "disabled"
     description: Name of root directory to extract list of directories by running `find ./find_dir -name *.tf` (ignored if `atlantis-file` is set)
   INPUT_RECURSIVE:
-    value: "false"
     description: Submodules path to recursively update
   INPUT_RECURSIVE_PATH:
-    value: "modules"
     description: If true it will update submodules recursively
   INPUT_OUTPUT_FORMAT:
     value: "markdown table"
@@ -61,8 +57,11 @@ stages:
 
 terraform-docs:
   stage: terraform-docs
-  script: echo "generating terraform-docs..."
-  when: always
-  # only:
-  # changes:
-  # - *.tf
+  script: echo $?
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      changes:
+        - "**/*.tf"
+        - "**/*.tfvars"
+      when: manual
+      allow_failure: true
