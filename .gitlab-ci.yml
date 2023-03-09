@@ -1,36 +1,63 @@
 image: $IMAGE
 
 variables:
-  IMAGE: quay.io/terraform-docs/gh-actions:1.0.0 # Link to container image
+  IMAGE: quay.io/pfeifferj/terraform-docs-gitlab:1.0.0 # Link to container image
   GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_PROJECT_PATH
-  INPUT_WORKING_DIR: $GIT_CLONE_PATH # Comma separated list of directories to generate docs for (ignored if `atlantis-file` or `find-dir` is set)
-  INPUT_ATLANTIS_FILE: "disabled" # Name of Atlantis file to extract list of directories by parsing it. To enable, provide the file name (e.g. `atlantis.yaml`)
-  INPUT_FIND_DIR: "disabled" # Name of root directory to extract list of directories by running `find ./find_dir -name *.tf` (ignored if `atlantis-file` is set)
-  INPUT_RECURSIVE: "false" # Submodules path to recursively update
-  INPUT_RECURSIVE_PATH: "modules" # If true it will update submodules recursively
-  INPUT_OUTPUT_FORMAT: "markdown table" # terraform-docs format to generate content (see [all formats](https://github.com/terraform-docs/terraform-docs/blob/master/docs/FORMATS_GUIDE.md)) (ignored if `config-file` is set)
-  INPUT_OUTPUT_METHOD: "inject" # Method should be one of `replace`, `inject`, or `print`
-  INPUT_OUTPUT_FILE: "README.md" # File in module directory where the docs should be placed
+  INPUT_WORKING_DIR:
+    value: $GIT_CLONE_PATH
+    description: Comma separated list of directories to generate docs for (ignored if `atlantis-file` or `find-dir` is set)
+  INPUT_ATLANTIS_FILE:
+    value: "disabled"
+    description: Name of Atlantis file to extract list of directories by parsing it. To enable, provide the file name (e.g. `atlantis.yaml`)
+  INPUT_FIND_DIR:
+    value: "disabled"
+    description: Name of root directory to extract list of directories by running `find ./find_dir -name *.tf` (ignored if `atlantis-file` is set)
+  INPUT_RECURSIVE:
+    value: "false"
+    description: Submodules path to recursively update
+  INPUT_RECURSIVE_PATH:
+    value: "modules"
+    description: If true it will update submodules recursively
+  INPUT_OUTPUT_FORMAT:
+    value: "markdown table"
+    description: terraform-docs format to generate content (see [all formats](https://github.com/terraform-docs/terraform-docs/blob/master/docs/FORMATS_GUIDE.md)) (ignored if `config-file` is set)
+  INPUT_OUTPUT_METHOD:
+    value: "inject"
+    description: Method should be one of `replace`, `inject`, or `print`
+  INPUT_OUTPUT_FILE:
+    value: "README.md"
+    description: File in module directory where the docs should be placed
   INPUT_TEMPLATE:
-    |- # When provided will be used as the template if/when the `output-file` does not exist
-    <!-- BEGIN_TF_DOCS -->
-    {{ .Content }}
-    <!-- END_TF_DOCS -->
-  INPUT_ARGS: "" # Additional arguments to pass to the command (see [full documentation](https://github.com/terraform-docs/terraform-docs/tree/master/docs))
-  INPUT_INDENTION: "2" # Indention level of Markdown sections [1, 2, 3, 4, 5]
-  INPUT_GIT_PUSH: "false" # If true it will commit and push the changes
-  INPUT_GIT_COMMIT_MESSAGE: "terraform-docs: automated action" # Commit message
-  INPUT_CONFIG_FILE: "disabled" # Name of terraform-docs config file. To enable, provide the file name (e.g. `.terraform-docs.yml`)
-  INPUT_FAIL_ON_DIFF: "" # Fail the job if there is any diff found between the generated output and existing file (ignored if `git-push` is set)
-  INPUT_GIT_PUSH_SIGN_OFF: "" # If true it will sign-off commit
-  INPUT_GIT_PUSH_USER_NAME: "" # If empty the name of the GitHub Actions bot will be used (i.e. `github-actions[bot]`)
-  INPUT_GIT_PUSH_USER_EMAIL: "" # If empty the no-reply email of the GitHub Actions bot will be used (i.e. `github-actions[bot]@users.noreply.github.com`)
+    value: |-
+      <!-- BEGIN_TF_DOCS -->
+      {{ .Content }}
+      <!-- END_TF_DOCS -->
+    description: When provided will be used as the template if/when the `output-file` does not exist
+  INPUT_ARGS:
+    description: Additional arguments to pass to the command (see [full documentation](https://github.com/terraform-docs/terraform-docs/tree/master/docs))
+  INPUT_INDENTION:
+    value: "2"
+    description: Indention level of Markdown sections [1, 2, 3, 4, 5]
+  INPUT_GIT_PUSH:
+    value: "false"
+    description: If true it will commit and push the changes
+  INPUT_GIT_COMMIT_MESSAGE:
+    value: "terraform-docs: automated action"
+    description: Commit message
+  INPUT_CONFIG_FILE:
+    value: "disabled"
+    description: Name of terraform-docs config file. To enable, provide the file name (e.g. `.terraform-docs.yml`)
+  INPUT_FAIL_ON_DIFF:
+    description: Fail the job if there is any diff found between the generated output and existing file (ignored if `git-push` is set)
+  INPUT_GIT_PUSH_SIGN_OFF:
+    description: If true it will sign-off commit
+  INPUT_GIT_PUSH_USER_NAME:
+    description: If empty the name of the GitHub Actions bot will be used (i.e. `github-actions[bot]`)
+  INPUT_GIT_PUSH_USER_EMAIL:
+    description: If empty the no-reply email of the GitHub Actions bot will be used (i.e. `github-actions[bot]@users.noreply.github.com`)
 
 stages:
   - terraform-docs
-
-before_script:
-  - ls -a
 
 terraform-docs:
   stage: terraform-docs
