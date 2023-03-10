@@ -10,6 +10,11 @@ cmd_args=(${INPUT_OUTPUT_FORMAT})
 # shellcheck disable=SC2206
 cmd_args+=(${INPUT_ARGS})
 
+# overwrite var for MR pipeline
+export CI_COMMIT_BRANCH=$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
+export GIT_CLONE_PATH=$CI_COMMIT_SHA
+
+
 if [ "${INPUT_CONFIG_FILE}" = "disabled" ]; then
     case "$INPUT_OUTPUT_FORMAT" in
     "asciidoc" | "asciidoc table" | "asciidoc document")
@@ -34,30 +39,58 @@ if [ -z "${INPUT_GIT_PUSH_USER_EMAIL}" ]; then
     INPUT_GIT_PUSH_USER_EMAIL="gitlab-ci[bot]@noreply.gitlab.com"
 fi
 
-git_setup() {
-    git config --global --add safe.directory $GIT_CLONE_PATH
+precheck() {
+    vars=("GITLAB_USER_EMAIL" "GITLAB_TOKEN")
 
-    git config --global user.name "${INPUT_GIT_PUSH_USER_NAME}"
-    git config --global user.email "${INPUT_GIT_PUSH_USER_EMAIL}"
-    git fetch --depth=1 origin +refs/tags/*:refs/tags/* || true
+    for var in "${vars[@]}"
+    do
+        if [ -z "${!var}" ]; then
+            echo "::error Required variable '$var' is not set or is empty."
+        fi
+    done 
 }
 
-git_add() {
-    local file
-    file="$1"
-    git add "${file}"
-    if [ "$(git status --porcelain | grep "$file" | grep -c -E '([MA]\W).+')" -eq 1 ]; then
-        echo "::debug Added ${file} to git staging area"
+git_setup() {
+    echo "::debug Cloing repo"
+    git clone "https://${GITLAB_USERNAME}:${GITLAB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" "${CI_COMMIT_SHA}"
+
+    echo "::debug Configuting local git"
+    git config --global --add safe.directory $GIT_CLONE_PATH
+    git config --global user.email "${INPUT_GIT_PUSH_USER_EMAIL:-$GITLAB_USER_EMAIL}"
+    git config --global user.name "${INPUT_GIT_PUSH_USER_NAME:-$GITLAB_USER_NAME}"
+
+    cd "${GIT_CLONE_PATH}"
+
+    git fetch --depth=1 origin +refs/tags/*:refs/tags/* || true
+
+    echo "::debug Setting branch"
+    git switch "${CI_COMMIT_BRANCH}"
+
+    cd ..
+}
+
+git_add() { 
+    cd $GIT_CLONE_PATH
+    git add "${INPUT_OUTPUT_FILE}"
+    if [ "$(git status --porcelain | grep "${INPUT_OUTPUT_FILE}" | grep -c -E '([MA]\W).+')" -eq 1 ]; then
+        echo "::debug Added ${INPUT_OUTPUT_FILE} to git staging area"
     else
-        echo "::debug No change in ${file} detected"
+        echo "::debug No change in ${INPUT_OUTPUT_FILE} detected"
     fi
+    cd ..
 }
 
 git_status() {
+    cd $GIT_CLONE_PATH
     git status --porcelain | grep -c -E '([MA]\W).+' || true
+    cd ..
 }
 
 git_commit() {
+    echo "::debug Preparing commit"   
+
+    cd "${GIT_CLONE_PATH}"
+
     if [ "$(git_status)" -eq 0 ]; then
         echo "::debug No files changed, skipping commit"
         exit 0
@@ -74,7 +107,10 @@ git_commit() {
         args+=("-s")
     fi
 
+    echo "::debug Committing changes"
     git commit "${args[@]}"
+
+    cd ..
 }
 
 update_doc() {
@@ -130,13 +166,11 @@ update_doc() {
     fi
 
     if [ "${INPUT_OUTPUT_METHOD}" == "inject" ] || [ "${INPUT_OUTPUT_METHOD}" == "replace" ]; then
-        git_add "${working_dir}/${OUTPUT_FILE}"
+        git_add
     fi
 }
 
-# go to github repo
-cd "${GIT_CLONE_PATH}"
-
+precheck
 git_setup
 
 if [ -f "${GIT_CLONE_PATH}/${INPUT_ATLANTIS_FILE}" ]; then
@@ -163,7 +197,8 @@ set -e
 
 if [ "${INPUT_GIT_PUSH}" = "true" ]; then
     git_commit
-    git push
+    echo "::debug Pushing changes"
+    git push origin $CI_COMMIT_BRANCH -o ci.skip
 else
     if [ "${INPUT_FAIL_ON_DIFF}" = "true" ] && [ "${num_changed}" -ne 0 ]; then
         echo "::error ::Uncommitted change(s) has been found!"

@@ -1,7 +1,15 @@
 image: $IMAGE
 
 variables:
-  IMAGE: quay.io/pfeifferj/terraform-docs-gitlab:1.0.0 # Link to container image
+  IMAGE:
+    value: quay.io/pfeifferj/terraform-docs-gitlab:1.0.0
+    description: Link to container image
+  GITLAB_TOKEN:
+    value: ""
+    description: GitLab user's personal access token. Should be defined as protected repository variable, using a manual run or injected using vault!
+  GITLAB_USERNAME:
+    value: ""
+    description: GitLab username associated with personal access token
   GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_PROJECT_PATH
   INPUT_WORKING_DIR:
     value: $GIT_CLONE_PATH
@@ -57,8 +65,11 @@ stages:
 
 terraform-docs:
   stage: terraform-docs
-  script: echo "generating terraform-docs..."
-  when: always
-  # only:
-  # changes:
-  # - *.tf
+  script: echo $?
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      changes:
+        - "**/*.tf"
+        - "**/*.tfvars"
+      when: manual
+      allow_failure: true
