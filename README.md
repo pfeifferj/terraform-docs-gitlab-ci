@@ -21,7 +21,7 @@ include:
 
 ## Configuration
 
-The job template comes with certain defaults default which can be overwritten by setting the variables in the `.gitlab-ci.yaml` file, the repository variables or pipeline variables. [Cf. CI/CD variable precedence](ttps://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence)
+The job template comes with certain defaults default which can be overwritten by setting the variables in the `.gitlab-ci.yaml` file, the repository variables or pipeline variables. [Cf. CI/CD variable precedence](https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence)
 
 ## Example
 
